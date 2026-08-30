@@ -3,6 +3,7 @@ import { useState } from "react";
 import GameMap from "./components/GameMap";
 import { LatLng } from "leaflet";
 import { locations } from "./game/locations";
+import FinalScore from "./components/FinalScore";
 
 function calculateDistance(
   lat1: number,
@@ -23,13 +24,32 @@ function calculateDistance(
 
 export default function Home() {
   const [selectedLocation, setSelectedLocation] = useState<LatLng | null>(null);
-  const [currentLocation] = useState(
-    locations[Math.floor(Math.random() * locations.length)]
+  const [currentLocation, setCurrentLocation] = useState(
+    locations[0]
   );
+  const [gameOver, setGameOver] = useState(false);
   const [round, setRound] = useState(1);
   const [score, setScore] = useState(0);
-  const [result, setResult] = useState<{distance : number; points : number;} | null>(null);
-
+  const [result, setResult] = useState<{ distance: number; points: number; } | null>(null);
+  const [usedLocations, setUsedLocations] = useState<number[]>([0]);
+  const nextRound = () => {
+    if(round === 5){
+      setGameOver(true);
+      return;
+    }
+    const availableLocations = locations
+      .map((location, index) => ({ location, index }))
+      .filter(({ index }) => !usedLocations.includes(index));
+    const randomLocation = availableLocations[Math.floor(Math.random() * availableLocations.length)];
+    setCurrentLocation(randomLocation.location);
+    setUsedLocations((current)=>[
+      ...current,
+      randomLocation.index,
+    ]);
+    setRound((current)=> current + 1);
+    setSelectedLocation(null);
+    setResult(null);
+  }
   return (
     <main className="w-screen h-screen overflow-hidden">
       <GameMap onLocationSelect={setSelectedLocation} selectedLocation={selectedLocation} actualLocation={result ? new LatLng(
@@ -37,22 +57,25 @@ export default function Home() {
         currentLocation.longitude
       ) : null} />
       {selectedLocation && (
-        <button onClick={() => {
-          const distance = calculateDistance(
-            selectedLocation.lat,
-            selectedLocation.lng,
-            currentLocation.latitude,
-            currentLocation.longitude,
-          );
-          const points = Math.max(
-            0,
-            Math.round(5000 * Math.exp(-distance / 2000))
-          )
-          setResult({
-            distance,
-            points,
-          })
-        }} className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000] rounded-xl bg-black px-8 py-4 text-lg font-semibold text-white shadow-xl hover:scale-105 transition">
+        <button
+          disabled={!!result}
+          onClick={() => {
+            const distance = calculateDistance(
+              selectedLocation.lat,
+              selectedLocation.lng,
+              currentLocation.latitude,
+              currentLocation.longitude,
+            );
+            const points = Math.max(
+              0,
+              Math.round(5000 * Math.exp(-distance / 2000))
+            )
+            setResult({
+              distance,
+              points,
+            })
+            setScore((current) => current + points);
+          }} className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000] rounded-xl bg-black px-8 py-4 text-lg font-semibold text-white shadow-xl hover:scale-105 transition">
           MAKE GUESS
         </button>
       )}
@@ -67,7 +90,23 @@ export default function Home() {
           <p className="mt-2 text-lg">
             {result.points.toLocaleString()} points
           </p>
+          <button
+            onClick={nextRound}
+            className="mt-4 rounded-lg cursor-pointer bg-white px-5 py-2 font-semibold text-black hover:scale-105 transition"
+          >NEXT ROUND
+          </button>
         </div>
+      )}
+      <div className="absolute top-5 right-10 z-[1000] rounded-lg bg-black px-4 py-2 text-white">
+        Round {round}/5
+      </div>
+      <div className="absolute top-5 left-10 z-[1000] rounded-lg bg-black text-white py-2 px-4 ">
+        Score : {score.toLocaleString()}
+      </div>
+      {gameOver && (
+        <FinalScore score={score} onRestart={()=>{
+          window.location.reload();
+        }} />
       )}
     </main>
   );
