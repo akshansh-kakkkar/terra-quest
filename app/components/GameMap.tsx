@@ -1,10 +1,11 @@
 "use client";
 
 import { LatLng, LatLngBounds } from "leaflet";
-import { CircleMarker, MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
+import { CircleMarker, MapContainer, Marker, Polyline, TileLayer, useMapEvents } from "react-leaflet";
 type GameMapProps = {
     onLocationSelect : (location: LatLng)=>void;
     selectedLocation : LatLng | null;
+    actualLocation : LatLng | null;
 }
 
 function MapClickHandler({onLocationSelect,} : {onLocationSelect : (location : LatLng)=>void} ){
@@ -16,7 +17,7 @@ function MapClickHandler({onLocationSelect,} : {onLocationSelect : (location : L
     return null;
 }
 
-export default function GameMap({onLocationSelect, selectedLocation} : GameMapProps){
+export default function GameMap({onLocationSelect, selectedLocation, actualLocation} : GameMapProps){
     const worldBounds = new LatLngBounds(
         [-85, -180],
         [85, 180]
@@ -42,6 +43,27 @@ export default function GameMap({onLocationSelect, selectedLocation} : GameMapPr
                     fillOpacity : 1,
                 }} />
             )}
+            {actualLocation && (
+                <CircleMarker
+                center={actualLocation}
+                radius={8} 
+                pathOptions={{
+                    color : "white",
+                    fillColor : "lime",
+                    fillOpacity : 1,
+                }}/>
+            )}
+            {
+                selectedLocation && actualLocation && (
+                    <Polyline
+                        positions={[selectedLocation, actualLocation]}
+                        pathOptions={{
+                            color : "black",
+                            weight : 3,
+                        }}
+                    />
+                )
+            }
         </MapContainer>
     )
 }
