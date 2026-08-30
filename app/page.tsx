@@ -1,9 +1,16 @@
 'use client'
 import { useState } from "react";
-import GameMap from "./components/GameMap";
+import dynamic from "next/dynamic";
 import { LatLng } from "leaflet";
 import { locations } from "./game/locations";
 import FinalScore from "./components/FinalScore";
+import Image from "next/image";
+import { Dot } from "lucide-react";
+
+const GameMap = dynamic(
+  ()=> import("./components/GameMap"),
+  {ssr : false}
+)
 
 function calculateDistance(
   lat1: number,
@@ -48,8 +55,10 @@ export default function Home() {
     ]);
     setRound((current)=> current + 1);
     setSelectedLocation(null);
+    setRevealClues(1)
     setResult(null);
   }
+  const [revealClues, setRevealClues] = useState(1);
   return (
     <main className="w-screen h-screen overflow-hidden">
       <GameMap onLocationSelect={setSelectedLocation} selectedLocation={selectedLocation} actualLocation={result ? new LatLng(
@@ -108,6 +117,29 @@ export default function Home() {
           window.location.reload();
         }} />
       )}
+      <div className="absolute top-6 left-6 z-[1000] w-[450px] overflow-hidden rounded-2xl bg-black shadow-2xl">
+        <Image src={currentLocation.image} alt="location" width={450} height={300} className="h-[300px] w-full object-cover" />
+            <div className="p-4">
+        <p className="text-xs uppercase tracking-widest text-zinc-500">Clues</p>
+        <div className="mt-3 space-y-2">
+          {currentLocation.clues.map((clue, index)=>(
+            <div  key={index}>
+              {index < revealClues ? (
+            <p className="text-sm flex text-white">
+             <span><Dot /> </span> 
+             <span>{clue}</span>
+            </p>
+              ) : (
+                <button className="text-sm text-zinc-500 hover:text-white transition-all" onClick={()=>setRevealClues((current)=> current + 1)}>
+                  Reveal clue #{index + 1}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+      </div>
+
     </main>
   );
 }
