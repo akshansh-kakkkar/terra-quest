@@ -19,3 +19,20 @@ body {
   max-width: none !important;
   max-height: none !important;
 }
+.leaflet-overlay-pane path{
+  transition: stroke-dashoffset 0.8s ease;
+}
+
+.actual-location-marker {
+  animation: locationPulse 1.2s ease-out infinite;
+}
+
+@keyframes locationPulse {
+  0%{
+    opacity: 1;
+  }50%{
+    opacity: 0.45;
+  }100%{
+    opacity: 1;
+  }
+}

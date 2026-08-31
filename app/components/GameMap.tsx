@@ -1,5 +1,5 @@
 "use client";
-
+import {motion} from "framer-motion"
 import { LatLng, LatLngBounds } from "leaflet";
 import { CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, useMapEvents } from "react-leaflet";
 import { Coordinates } from '../game/types';
@@ -44,21 +44,36 @@ export default function GameMap({onLocationSelect, selectedLocation, actualLocat
             />
             <MapClickHandler resultShown={resultShown} onLocationSelect={onLocationSelect} />
             {selectedLocation && (
-                <CircleMarker center={selectedLocation} radius={8} pathOptions={{
+                <CircleMarker 
+                center={selectedLocation} 
+                radius={8} 
+                pathOptions={{
                     color : "white",
-                    fillColor : "red",
+                    fillColor : "#FFB4AB",
                     fillOpacity : 1,
-                }} />
+                    weight : 3,
+
+                }}>
+                    <Tooltip permanent direction="top">
+                        Your Guess
+                    </Tooltip>
+                </CircleMarker>
             )}
             {actualLocation && (
                 <CircleMarker
                 center={actualLocation}
-                radius={8} 
+                radius={10} 
                 pathOptions={{
                     color : "white",
-                    fillColor : "lime",
+                    fillColor : "#00E639",
                     fillOpacity : 1,
-                }}/>
+                    weight : 3,
+                    className:"actual-location-marker"
+                }}>
+                    <Tooltip permanent direction="top">
+                        Actual Location
+                    </Tooltip>
+                </CircleMarker>
             )}
             {
                 selectedLocation && actualLocation && distance !== null && (
@@ -67,6 +82,8 @@ export default function GameMap({onLocationSelect, selectedLocation, actualLocat
                         pathOptions={{
                             color : "black",
                             weight : 3,
+                            dashArray : "8 8",
+                            opacity : 0.8
                         }}>
                             <Tooltip permanent>
                                 {distance.toFixed(1)}km

@@ -6,7 +6,7 @@ import { locations } from "./game/locations";
 import FinalScore from "./components/FinalScore";
 import Image from "next/image";
 import { ArrowUp, Dot, Minus, Plus } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, distance, motion } from "framer-motion";
 
 const GameMap = dynamic(
   () => import("./components/GameMap"),
@@ -28,6 +28,7 @@ function calculateDistance(
     Math.sin(dLon / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
+
 }
 
 export default function Home() {
@@ -38,28 +39,37 @@ export default function Home() {
   const [gameOver, setGameOver] = useState(false);
   const [round, setRound] = useState(1);
   const [score, setScore] = useState(0);
-  const [result, setResult] = useState<{ distance: number; points: number; timedOut?: boolean; timeBonus: number } | null>(null);
+  const [result, setResult] = useState<{ distance: number; rating: string; points: number; timedOut?: boolean; timeBonus: number; perfectBonus: number; } | null>(null);
   const [usedLocations, setUsedLocations] = useState<number[]>([0]);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
   const nextRound = () => {
     if (round === 5) {
       setGameOver(true);
       return;
     }
-    const availableLocations = locations
-      .map((location, index) => ({ location, index }))
-      .filter(({ index }) => !usedLocations.includes(index));
-    const randomLocation = availableLocations[Math.floor(Math.random() * availableLocations.length)];
-    setCurrentLocation(randomLocation.location);
-    setUsedLocations((current) => [
-      ...current,
-      randomLocation.index,
-    ]);
-    setRound((current) => current + 1);
-    setSelectedLocation(null);
-    setRevealClues(1)
-    setResult(null);
-    setTimeLeft(30);
-    setImageScale(1);
+    setIsTransitioning(true);
+    setTimeout(() => {
+
+      const availableLocations = locations
+        .map((location, index) => ({ location, index }))
+        .filter(({ index }) => !usedLocations.includes(index));
+      const randomLocation = availableLocations[Math.floor(Math.random() * availableLocations.length)];
+      setCurrentLocation(randomLocation.location);
+
+      setUsedLocations((current) => [
+        ...current,
+        randomLocation.index,
+      ]);
+      setRound((current) => current + 1);
+      setSelectedLocation(null);
+      setRevealClues(1)
+      setResult(null);
+      setTimeLeft(30);
+      setImageScale(1);
+      setIsTransitioning(false);
+    }, 400)
+
   }
   const [revealClues, setRevealClues] = useState(1);
   const [timeLeft, setTimeLeft] = useState(30);
@@ -71,10 +81,13 @@ export default function Home() {
         distance: Infinity,
         points: 0,
         timedOut: true,
-        timeBonus : 0
+        timeBonus: 0,
+        perfectBonus: 0,
+        rating: ""
       });
       return;
     }
+
     const timer = setInterval(() => {
       setTimeLeft((current) => current - 1);
     }, 1000);
@@ -82,6 +95,22 @@ export default function Home() {
   }, [timeLeft, result, gameOver])
   return (
     <main className="w-screen h-screen overflow-hidden">
+      <AnimatePresence>
+        {isTransitioning && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[2000] flex items-center justify-center bg-black">
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-sm uppercase tracking-[0.3em] text-white">
+              Next location...
+            </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <GameMap distance={result?.distance ?? null} onLocationSelect={setSelectedLocation} selectedLocation={selectedLocation} actualLocation={result ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : null}
         resultShown={!!result} />
       {selectedLocation && !result && (
@@ -106,22 +135,48 @@ export default function Home() {
               );
               const basePoints = Math.max(0, Math.round(5000 * Math.exp(-distance / 2000)));
               const timeBonus = Math.round(timeLeft * 10);
+              const perfectBonus = distance <= 25 ? 1000 : 0;
+              const points = basePoints + timeBonus + perfectBonus;
+              let rating = "WAY OFF";
+              if (distance <= 25) {
+                rating = "PERFECT";
+              }
+              else if (distance <= 100) {
+                rating = "GREAT"
+              }
+              else if (distance <= 500) {
+                rating = "GOOD"
+              }
+              else if (distance <= 1500) {
+                rating = "CLOSE ENOUGH"
+              }
 
-              const points = basePoints + timeBonus
               setResult({
                 distance,
                 points,
                 timeBonus,
-
+                perfectBonus,
+                rating,
               })
               setScore((current) => current + points);
             }}>
             MAKE GUESS
           </button>
+
         </div>
       )}
       {result && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[1000] rounded-xl bg-black px-6 py-4 text-center text-white shadow-xl">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="absolute top-6 left-1/2 -translate-x-1/2 z-[1000] rounded-xl bg-black px-6 py-4 text-center text-white shadow-xl">
+          <motion.p 
+          initial={{opacity : 0, scale : 0.8}}
+          animate={{opacity : 1, scale : 1}}
+          className="text-sm font-bold uppercase tracking-widest text-white">
+            {result.rating}
+          </motion.p>
           {result.timedOut ? (
             <>
               <p className="text-xs uppercase tracking-widest text-red-400">
@@ -144,9 +199,15 @@ export default function Home() {
               <p className="mt-2 text-lg">
                 {result.points.toLocaleString()} points
               </p>
-              <p>+{result.timeBonus} speed bonus</p>
+              {result.timeBonus > 0 && (
+                <p className="mt-1 text-sm font-semibold text-yellow-400">+{result.timeBonus} SPEED BONUS</p>
+              )}
+              {result.perfectBonus > 0 && (
+                <p className="mt-1 font-semibold text-sm text-yellow-400">
+                  +{result.perfectBonus} PERFECT BONUS
+                </p>
+              )}
               <p className="text-md font-bold text-white">{currentLocation.name}, {currentLocation.country}</p>
-
             </>
           )}
 
@@ -156,14 +217,27 @@ export default function Home() {
           >
             {round === 5 ? "SEE RESULTS" : "NEXT ROUND"}
           </button>
-        </div>
+        </motion.div>
       )}
       <div className="absolute top-5 right-10 z-[1000] rounded-lg bg-black px-4 py-2 text-white">
         Round {round}/5
+        <div className="h-1.5 overflow-hidden rounded-full bg-black/40">
+          <motion.div
+            className="h-full rounded-full bg-white"
+            initial={{ width: 0 }}
+            animate={{ width: `${(round / 5) * 100}%` }}
+          />
+        </div>
       </div>
-      <div className="absolute top-5 left-12 z-[1000] rounded-lg bg-black text-white py-2 px-4 ">
-        Score : {score.toLocaleString()}
-      </div>
+      <motion.div
+        key={score}
+        initial={{ scale: 1 }}
+        animate={{ scale: [1, 1.15, 1] }}
+        transition={{ duration: 0.35 }}
+        className="absolute top-5 left-12 z-[1000] rounded-lg bg-black text-white py-2 px-4 ">
+        <p className="text-xs uppercase tracking-widest text-zinc-500">Score</p>
+        <p className="text-xl font-bold">{score.toLocaleString()}</p>
+      </motion.div>
       <div className={`absolute top-7 left-1/2 z-[650] -translate-x-1/2 rounded-xl bg-black px-5 py-2 text-white shadow-lg ${timeLeft <= 10 ? "animate-bounce bg-red-600" : timeLeft <= 20 ? "bg-orange-500" : "bg-black"} ${timeLeft === 0 && "hidden"}`}>
         <span className="text-xs uppercase tracking-widest text-shadow-initial opacity-70">Time</span>
         <span className="ml-3 text-xs font-bold">{timeLeft}s</span>
@@ -214,18 +288,25 @@ export default function Home() {
             {currentLocation.clues.map((clue, index) => (
               <div key={index}>
                 {index < revealClues ? (
-                  <p className="text-sm flex text-white">
+                  <motion.p
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="text-sm flex text-white">
                     <span><Dot /> </span>
                     <span>{clue}</span>
-                  </p>
+                  </motion.p>
                 ) : index === revealClues ? (
-                  <button className="text-sm text-zinc-500 hover:text-white transition-all" onClick={() => {
-                    const cost = index === 1 ? 250 : 500;
-                    setScore((current) => Math.max(0, current - cost));
-                    setRevealClues((current) => current + 1);
-                  }}>
+                  <motion.button
+                    whileHover={{ x: 4 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="text-sm text-zinc-500 hover:text-white transition-all" onClick={() => {
+                      const cost = index === 1 ? 250 : 500;
+                      setScore((current) => Math.max(0, current - cost));
+                      setRevealClues((current) => current + 1);
+                    }}>
                     Reveal clue #{index + 1} (-{index === 1 ? 250 : 500})
-                  </button>
+                  </motion.button>
                 ) : null}
               </div>
             ))}
