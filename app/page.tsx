@@ -5,7 +5,7 @@ import { LatLng } from "leaflet";
 import { locations } from "./game/locations";
 import FinalScore from "./components/FinalScore";
 import Image from "next/image";
-import { ArrowLeft, ArrowRight, ArrowUp, Dot, Minus, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUp, CircleSmall, Dot, Minus, Plus } from "lucide-react";
 import { AnimatePresence, distance, motion } from "framer-motion";
 import { head } from "framer-motion/client";
 
@@ -292,8 +292,11 @@ export default function Home() {
             key={heading}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="absolute top-[68px] left-1/2 z-20 -translate-x-1/2 rounded-full bg-black px-2 py-0.5 text-[9px] text-white text-white">
-            {heading}*
+            className="absolute top-[68px] flex gap-1 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black px-2 py-0.5 text-[9px] text-white text-white">
+            {heading} 
+            <span>
+              <CircleSmall size={6} />
+              </span>
           </motion.div>
           <div className="absolute bottom-3 text-white left-3 z-20  rounded-lg  bg-black/80 px-3 py-2 text-xs uppercase tracking-widest backdrop-blur-sm">
             Explore
@@ -311,15 +314,17 @@ export default function Home() {
                 alt="location"
                 width={300}
                 height={150}
-                className="h-full w-full object-cover"
-                style={{ transform: `scale(${imageScale})` }}
+                className="h-full w-[200%] max-w-none object-cover absolute "
+                style={{ transform: `translateX(calc(-50% + ${-heading / 2}px)) scale(${imageScale})`,
+                  transition : "transform 0.3s ease"
+                 }}
               />
             </motion.div>
           </AnimatePresence>
         </div>
         <button
           className="rounded-lg bg-black/80 px-3 py-2 text-white"
-          onClick={() => setHeading((current) => (current + 45) % 360)}
+          onClick={() => setHeading((current) => (current + 15) % 360)}
         ><ArrowLeft />
         </button>
         <div className="absolute bottom-3 right-3 flex gap-2 z-20">
@@ -331,7 +336,7 @@ export default function Home() {
           </button>
         </div>
         <button className="rounded-lg bg-black/80 px-3 py-2 text-white"
-          onClick={() => setHeading((current) => (current - 45 + 360) % 360)}>
+          onClick={() => setHeading((current) => (current - 15 + 360) % 360)}>
           <ArrowRight />
         </button>
         <div className="p-4 z-[100000]">
