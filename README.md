@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Terra Quest 
 
-## Getting Started
+## Description
+It's a small geography guessing game where you get a location, clues and 30 seconds of time to figure out where the location is. Look at the map, use clues, mark a location and make a guess!
 
-First, run the development server:
+## How it works
+Each Game has **5 rounds**
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+In every round :
+
+-  You get an image of a location
+- A clue about the location.
+- You can zoom in, zoom out, change x axis direction and view the image clearly.
+- If you still can't guess it you may use addititional clues and they cost extra points.
+- Place a guess once you find it and click make a guess button.
+- Do the same in the next round.
+- You get points for time bonus and perfect guess too.
+- There are only 30seconds per location.
+
+## Features 
+- Interactive map
+- Guessing functionality
+- 30 second timer
+- clues
+- Image zooming and direction flexibility on x axis
+- final score screen 
+
+
+## Tech Stack 
+- Next.js
+- TypeScript
+- Leaflet
+- Tailwindcss
+- Lucide Icons
+- Framer Motion
+- React Leaflet
+
+This is completely a frontend project. Initially I had alot of problems while making the interactive map
+
+
+## Installation
+
+#### clone the repository
+```
+git clone https://github.com/akshansh-kakkkar/terra-quest.git
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+#### Installation
+```
+bun install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+#### Run the server
+```
+bun run dev
+```
