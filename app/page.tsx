@@ -5,8 +5,9 @@ import { LatLng } from "leaflet";
 import { locations } from "./game/locations";
 import FinalScore from "./components/FinalScore";
 import Image from "next/image";
-import { ArrowUp, Dot, Minus, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUp, Dot, Minus, Plus } from "lucide-react";
 import { AnimatePresence, distance, motion } from "framer-motion";
+import { head } from "framer-motion/client";
 
 const GameMap = dynamic(
   () => import("./components/GameMap"),
@@ -43,6 +44,7 @@ export default function Home() {
   const [usedLocations, setUsedLocations] = useState<number[]>([0]);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
+
   const nextRound = () => {
     if (round === 5) {
       setGameOver(true);
@@ -71,9 +73,12 @@ export default function Home() {
     }, 400)
 
   }
+
   const [revealClues, setRevealClues] = useState(1);
   const [timeLeft, setTimeLeft] = useState(30);
+  const [scoreChange, setScoreChange] = useState<number | null>(null);
   const [imageScale, setImageScale] = useState(1);
+  const [heading, setHeading] = useState(0);
   useEffect(() => {
     if (result || gameOver) return;
     if (timeLeft === 0) {
@@ -167,14 +172,14 @@ export default function Home() {
       )}
       {result && (
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
+          initial={{ opacity: 0, y: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.25, ease: "easeOut", }}
           className="absolute top-6 left-1/2 -translate-x-1/2 z-[1000] rounded-xl bg-black px-6 py-4 text-center text-white shadow-xl">
-          <motion.p 
-          initial={{opacity : 0, scale : 0.8}}
-          animate={{opacity : 1, scale : 1}}
-          className="text-sm font-bold uppercase tracking-widest text-white">
+          <motion.p
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-sm font-bold uppercase tracking-widest text-white">
             {result.rating}
           </motion.p>
           {result.timedOut ? (
@@ -234,10 +239,23 @@ export default function Home() {
         initial={{ scale: 1 }}
         animate={{ scale: [1, 1.15, 1] }}
         transition={{ duration: 0.35 }}
-        className="absolute top-5 left-12 z-[1000] rounded-lg bg-black text-white py-2 px-4 ">
+        className="absolute top-5 left-12 z-[1000] flex gap-2 items-center text-center justify-center rounded-lg bg-black text-white py-2 px-4 ">
         <p className="text-xs uppercase tracking-widest text-zinc-500">Score</p>
         <p className="text-xl font-bold">{score.toLocaleString()}</p>
+        <AnimatePresence>
+          {scoreChange !== null && (
+            <motion.div
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: -10 }}
+              exit={{ opacity: 0 }}
+              className="absolute top-16 left-12 z-[1000] text-sm font-bold text-red-400"
+            >
+              {scoreChange}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
+
       <div className={`absolute top-7 left-1/2 z-[650] -translate-x-1/2 rounded-xl bg-black px-5 py-2 text-white shadow-lg ${timeLeft <= 10 ? "animate-bounce bg-red-600" : timeLeft <= 20 ? "bg-orange-500" : "bg-black"} ${timeLeft === 0 && "hidden"}`}>
         <span className="text-xs uppercase tracking-widest text-shadow-initial opacity-70">Time</span>
         <span className="ml-3 text-xs font-bold">{timeLeft}s</span>
@@ -249,9 +267,34 @@ export default function Home() {
       )}
       <div className="absolute bottom-5 right-2 z-[1000] w-[350px] overflow-hidden rounded-2xl bg-black shadow-2xl">
         <div className="relative w-full overflow-hidden h-[150px]">
-          <div className="absolute top-5 flex left-1/2 z-10 items-center gap-2 -translate-x-1/2 rounded-full bg-black/80 p-2 text-xs font-medium text-white backdrop-blur-sm">
-            N <ArrowUp size={12} />
-          </div>
+          <motion.div
+            animate={{ rotate: -heading }}
+            transition={{ duration: 0.25 }}
+            className="absolute top-5 flex left-1/2 z-10 h-12 w-12 items-center gap-2 -translate-x-1/2 rounded-full bg-black/80 p-2 text-xs font-medium text-white backdrop-blur-sm">
+            <span className="absolute top-1 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white">
+              N
+            </span>
+            <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white ">
+              E
+            </span>
+            <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white">
+              S
+            </span>
+            <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white ">
+              W
+            </span>
+            <ArrowUp
+              size={13}
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+            />
+          </motion.div>
+          <motion.div
+            key={heading}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute top-[68px] left-1/2 z-20 -translate-x-1/2 rounded-full bg-black px-2 py-0.5 text-[9px] text-white text-white">
+            {heading}*
+          </motion.div>
           <div className="absolute bottom-3 text-white left-3 z-20  rounded-lg  bg-black/80 px-3 py-2 text-xs uppercase tracking-widest backdrop-blur-sm">
             Explore
           </div>
@@ -274,6 +317,11 @@ export default function Home() {
             </motion.div>
           </AnimatePresence>
         </div>
+        <button
+          className="rounded-lg bg-black/80 px-3 py-2 text-white"
+          onClick={() => setHeading((current) => (current + 45) % 360)}
+        ><ArrowLeft />
+        </button>
         <div className="absolute bottom-3 right-3 flex gap-2 z-20">
           <button className="rounded-lg bg-black/80 px-3 py-2 text-white" onClick={() => setImageScale((current) => Math.min(current + 0.25, 2.5))}>
             <Plus />
@@ -282,6 +330,10 @@ export default function Home() {
             <Minus />
           </button>
         </div>
+        <button className="rounded-lg bg-black/80 px-3 py-2 text-white"
+          onClick={() => setHeading((current) => (current - 45 + 360) % 360)}>
+          <ArrowRight />
+        </button>
         <div className="p-4 z-[100000]">
           <p className="text-xs uppercase tracking-widest text-zinc-500">Clues</p>
           <div className="mt-3 space-y-2">
@@ -303,6 +355,10 @@ export default function Home() {
                     className="text-sm text-zinc-500 hover:text-white transition-all" onClick={() => {
                       const cost = index === 1 ? 250 : 500;
                       setScore((current) => Math.max(0, current - cost));
+                      setScoreChange(-cost);
+                      setTimeout(() => {
+                        setScoreChange(null);
+                      })
                       setRevealClues((current) => current + 1);
                     }}>
                     Reveal clue #{index + 1} (-{index === 1 ? 250 : 500})
