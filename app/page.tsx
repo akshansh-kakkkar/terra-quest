@@ -1,5 +1,5 @@
 'use client'
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { LatLng } from "leaflet";
 import { locations } from "./game/locations";
@@ -38,7 +38,7 @@ export default function Home() {
   const [gameOver, setGameOver] = useState(false);
   const [round, setRound] = useState(1);
   const [score, setScore] = useState(0);
-  const [result, setResult] = useState<{ distance: number; points: number; } | null>(null);
+  const [result, setResult] = useState<{ distance: number; points: number; timedOut?: boolean; timeBonus: number } | null>(null);
   const [usedLocations, setUsedLocations] = useState<number[]>([0]);
   const nextRound = () => {
     if (round === 5) {
@@ -58,10 +58,28 @@ export default function Home() {
     setSelectedLocation(null);
     setRevealClues(1)
     setResult(null);
+    setTimeLeft(30);
     setImageScale(1);
   }
   const [revealClues, setRevealClues] = useState(1);
+  const [timeLeft, setTimeLeft] = useState(30);
   const [imageScale, setImageScale] = useState(1);
+  useEffect(() => {
+    if (result || gameOver) return;
+    if (timeLeft === 0) {
+      setResult({
+        distance: Infinity,
+        points: 0,
+        timedOut: true,
+        timeBonus : 0
+      });
+      return;
+    }
+    const timer = setInterval(() => {
+      setTimeLeft((current) => current - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timeLeft, result, gameOver])
   return (
     <main className="w-screen h-screen overflow-hidden">
       <GameMap distance={result?.distance ?? null} onLocationSelect={setSelectedLocation} selectedLocation={selectedLocation} actualLocation={result ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : null}
@@ -86,13 +104,15 @@ export default function Home() {
                 currentLocation.latitude,
                 currentLocation.longitude,
               );
-              const points = Math.max(
-                0,
-                Math.round(5000 * Math.exp(-distance / 2000))
-              )
+              const basePoints = Math.max(0, Math.round(5000 * Math.exp(-distance / 2000)));
+              const timeBonus = Math.round(timeLeft * 10);
+
+              const points = basePoints + timeBonus
               setResult({
                 distance,
                 points,
+                timeBonus,
+
               })
               setScore((current) => current + points);
             }}>
@@ -102,15 +122,34 @@ export default function Home() {
       )}
       {result && (
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[1000] rounded-xl bg-black px-6 py-4 text-center text-white shadow-xl">
-          <p className="text-sm text-zinc-400">
-            Distance
-          </p>
-          <p className="text-3xl font-bold">
-            {result.distance.toFixed(1)} km
-          </p>
-          <p className="mt-2 text-lg">
-            {result.points.toLocaleString()} points
-          </p>
+          {result.timedOut ? (
+            <>
+              <p className="text-xs uppercase tracking-widest text-red-400">
+                Time's Up
+              </p>
+              <p className="mt-1 text-3xl font-bold">
+                0 points
+              </p>
+
+              <p className="text-md font-bold text-white">{currentLocation.name}, {currentLocation.country}</p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-zinc-400">
+                Distance
+              </p>
+              <p className="text-3xl font-bold">
+                {result.distance.toFixed(1)} km
+              </p>
+              <p className="mt-2 text-lg">
+                {result.points.toLocaleString()} points
+              </p>
+              <p>+{result.timeBonus} speed bonus</p>
+              <p className="text-md font-bold text-white">{currentLocation.name}, {currentLocation.country}</p>
+
+            </>
+          )}
+
           <button
             onClick={nextRound}
             className="mt-4 rounded-lg cursor-pointer bg-white px-5 py-2 font-semibold text-black hover:scale-105 transition"
@@ -125,13 +164,17 @@ export default function Home() {
       <div className="absolute top-5 left-12 z-[1000] rounded-lg bg-black text-white py-2 px-4 ">
         Score : {score.toLocaleString()}
       </div>
+      <div className={`absolute top-7 left-1/2 z-[650] -translate-x-1/2 rounded-xl bg-black px-5 py-2 text-white shadow-lg ${timeLeft <= 10 ? "animate-bounce bg-red-600" : timeLeft <= 20 ? "bg-orange-500" : "bg-black"} ${timeLeft === 0 && "hidden"}`}>
+        <span className="text-xs uppercase tracking-widest text-shadow-initial opacity-70">Time</span>
+        <span className="ml-3 text-xs font-bold">{timeLeft}s</span>
+      </div>
       {gameOver && (
         <FinalScore score={score} onRestart={() => {
           window.location.reload();
         }} />
       )}
-      <div className="absolute bottom-5 right-2 z-[1000] w-[450px] overflow-hidden rounded-2xl bg-black shadow-2xl">
-        <div className="relative w-full overflow-hidden h-[250px]">
+      <div className="absolute bottom-5 right-2 z-[1000] w-[350px] overflow-hidden rounded-2xl bg-black shadow-2xl">
+        <div className="relative w-full overflow-hidden h-[150px]">
           <div className="absolute top-5 flex left-1/2 z-10 items-center gap-2 -translate-x-1/2 rounded-full bg-black/80 p-2 text-xs font-medium text-white backdrop-blur-sm">
             N <ArrowUp size={12} />
           </div>
@@ -140,21 +183,21 @@ export default function Home() {
           </div>
           <AnimatePresence mode="wait">
             <motion.div
-            key={currentLocation.id}
-            initial={{opacity : 0, scale : 1.05}}
-            animate={{opacity : 1, scale : 1}}
-            exit={{opacity : 0, scale : 0.98}}
-            transition={{duration : 0.4}}
-            className="w-full h-full">
-          <Image
-            src={currentLocation.image}
-            alt="location"
-            width={450}
-            height={300}
-            className="h-full w-full object-cover"
-            style={{ transform: `scale(${imageScale})` }}
-          />
-          </motion.div>
+              key={currentLocation.id}
+              initial={{ opacity: 0, scale: 1.05 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.4 }}
+              className="w-full h-full">
+              <Image
+                src={currentLocation.image}
+                alt="location"
+                width={300}
+                height={150}
+                className="h-full w-full object-cover"
+                style={{ transform: `scale(${imageScale})` }}
+              />
+            </motion.div>
           </AnimatePresence>
         </div>
         <div className="absolute bottom-3 right-3 flex gap-2 z-20">

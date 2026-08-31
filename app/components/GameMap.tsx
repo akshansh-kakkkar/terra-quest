@@ -30,7 +30,7 @@ export default function GameMap({onLocationSelect, selectedLocation, actualLocat
     return(
         <MapContainer
         center={[20,0]}
-        zoom={8}
+        zoom={4}
         minZoom={3}
         maxZoom={25}
         maxBounds={worldBounds}
